@@ -32,7 +32,6 @@
 }
 
 - (IBAction)shareButtonPressed:(UIButton *)sender {
-    
     [ShareUtility shareWithUrl:@"http://www.baidu.com" title:@"你好" desc:@"测试分享" icon:[UIImage imageNamed:@"icon"] respVC:self];
 }
 
