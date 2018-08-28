@@ -13,7 +13,7 @@
 #import <AlipaySDK/AlipaySDK.h>
 #import <TencentOpenAPI/TencentOAuth.h>
 #import <TencentOpenAPI/QQApiInterface.h>
-#import <TencentOpenAPI/TencentApiInterface.h>
+//#import <TencentOpenAPI/TencentApiInterface.h>
 
 
 static AuthUtility *shareInstance = nil;
@@ -39,8 +39,33 @@ static AuthUtility *shareInstance = nil;
         [WXApi handleOpenURL:url delegate:[AuthUtility shareInstance]];
     }else if ([urlString rangeOfString:Sina_APPID].location != NSNotFound) {
         [WeiboSDK handleOpenURL:url delegate:[AuthUtility shareInstance]];
+    }else if ([url.host isEqualToString:@"safepay"]) {
+            // 支付跳转支付宝钱包进行支付，处理支付结果
+        //【由于在跳转支付宝客户端支付的过程中，商户app在后台很可能被系统kill了，所以pay接口的callback就会失效，请商户对standbyCallback返回的回调结果进行处理,就是在这个方法里面处理跟callback一样的逻辑】
+            [[AlipaySDK defaultService] processOrderWithPaymentResult:url standbyCallback:^(NSDictionary *resultDic) {
+                NSLog(@"result = %@",resultDic);
+            }];
+    }else if ([url.host isEqualToString:@"platformapi"]) {
+        // 授权跳转支付宝钱包进行支付，处理支付结果
+        //【由于在跳转支付宝客户端支付的过程中，商户app在后台很可能被系统kill了，所以pay接口的callback就会失效，请商户对standbyCallback返回的回调结果进行处理,就是在这个方法里面处理跟callback一样的逻辑】
+        [[AlipaySDK defaultService] processAuth_V2Result:url standbyCallback:^(NSDictionary *resultDic) {
+            NSLog(@"result = %@",resultDic);
+            // 解析 auth code
+            NSString *result = resultDic[@"result"];
+            NSString *authCode = nil;
+            if (result.length>0) {
+                NSArray *resultArr = [result componentsSeparatedByString:@"&"];
+                for (NSString *subResult in resultArr) {
+                    if (subResult.length > 10 && [subResult hasPrefix:@"auth_code="]) {
+                        authCode = [subResult substringFromIndex:10];
+                        break;
+                    }
+                }
+            }
+            NSLog(@"授权结果 authCode = %@", authCode?:@"");
+        }];
     }
-    return NO;
+    return YES;
 }
 
 #pragma mark - 新浪微博登录
@@ -67,7 +92,6 @@ static AuthUtility *shareInstance = nil;
 #pragma mark - QQ登录
 - (void)qqLoginPressed {
     NSArray* permissions = [NSArray arrayWithObjects:
-                            kOPEN_PERMISSION_GET_USER_INFO,
                             kOPEN_PERMISSION_GET_USER_INFO,
                             kOPEN_PERMISSION_GET_SIMPLE_USER_INFO,
                             nil];
@@ -216,6 +240,7 @@ static AuthUtility *shareInstance = nil;
  @param orderString 服务端返回的订单信息(订单信息需要在服务端进行组装后返回)
  */
 - (void)alipayPressed:(NSString *)orderString {
+    NSLog(@"%@",[[AlipaySDK defaultService] currentVersion]);
     [[AlipaySDK defaultService] payOrder:orderString fromScheme:ALIPAY_SCHEME callback:^(NSDictionary *resultDic) {
         // 处理返回结果
         NSString* resultCode = resultDic[@"resultCode"];

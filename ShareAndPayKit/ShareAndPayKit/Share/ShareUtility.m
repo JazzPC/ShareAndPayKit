@@ -13,7 +13,6 @@
 #import "SPKitEnum.h"
 #import <TencentOpenAPI/QQApiInterface.h>
 #import <TencentOpenAPI/TencentOAuth.h>
-#import "WeiboSDK.h"
 #import "common.h"
 
 static ShareUtility *shareInstance = nil;
